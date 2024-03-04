@@ -10,6 +10,7 @@ import me.zhyd.oauth.request.AuthDefaultRequest;
 import me.zhyd.oauth.request.AuthRequest;
 import org.keycloak.OAuthErrorException;
 import org.keycloak.broker.oidc.AbstractOAuth2IdentityProvider;
+import org.keycloak.broker.oidc.OAuth2IdentityProviderConfig;
 import org.keycloak.broker.provider.AuthenticationRequest;
 import org.keycloak.broker.provider.BrokeredIdentityContext;
 import org.keycloak.broker.social.SocialIdentityProvider;
@@ -22,13 +23,13 @@ import org.keycloak.models.RealmModel;
 import org.keycloak.services.ErrorPage;
 import org.keycloak.services.messages.Messages;
 
-import javax.ws.rs.GET;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.HttpHeaders;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriBuilder;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.HttpHeaders;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.UriBuilder;
 import java.lang.reflect.Constructor;
 
 /**
@@ -83,7 +84,7 @@ public class JustIdentityProvider extends AbstractOAuth2IdentityProvider<JustIde
 
 	@Override
 	public Object callback(RealmModel realm, AuthenticationCallback callback, EventBuilder event) {
-		return new Endpoint(callback, realm, event);
+		return new Endpoint(callback, realm, event, this);
 	}
 
 
@@ -91,6 +92,9 @@ public class JustIdentityProvider extends AbstractOAuth2IdentityProvider<JustIde
 		protected AuthenticationCallback callback;
 		protected RealmModel realm;
 		protected EventBuilder event;
+
+		private final AbstractOAuth2IdentityProvider provider;
+
 		@Context
 		protected KeycloakSession session;
 		@Context
@@ -99,24 +103,26 @@ public class JustIdentityProvider extends AbstractOAuth2IdentityProvider<JustIde
 		protected HttpHeaders headers;
 
 
-		public Endpoint(AuthenticationCallback callback, RealmModel realm, EventBuilder event) {
+		public Endpoint(AuthenticationCallback callback, RealmModel realm, EventBuilder event, AbstractOAuth2IdentityProvider provider) {
 			this.callback = callback;
 			this.realm = realm;
 			this.event = event;
+			this.provider = provider;
 		}
 
 		@GET
 		public Response authResponse(@QueryParam("state") String state,
 									 @QueryParam("code") String authorizationCode,
 									 @QueryParam("error") String error) {
+			OAuth2IdentityProviderConfig providerConfig = provider.getConfig();
 			if (error != null) {
 				logger.error(error + " for broker login " + getConfig().getProviderId());
 				if (error.equals(ACCESS_DENIED)) {
-					return callback.cancelled(state);
+					return callback.cancelled(providerConfig);
 				} else if (error.equals(OAuthErrorException.LOGIN_REQUIRED) || error.equals(OAuthErrorException.INTERACTION_REQUIRED)) {
-					return callback.error(state, error);
+					return callback.error(error);
 				} else {
-					return callback.error(state, Messages.IDENTITY_PROVIDER_UNEXPECTED_ERROR);
+					return callback.error(Messages.IDENTITY_PROVIDER_UNEXPECTED_ERROR);
 				}
 			}
 			try {
@@ -145,7 +151,6 @@ public class JustIdentityProvider extends AbstractOAuth2IdentityProvider<JustIde
 					federatedIdentity.setBrokerUserId(authUser.getUuid());
 					federatedIdentity.setIdpConfig(config);
 					federatedIdentity.setIdp(JustIdentityProvider.this);
-					federatedIdentity.setCode(state);
 
 					JsonPathUserAttributeMapper.storeUserProfileForMapper(federatedIdentity, authUser.getRawUserInfo(), "JustAuth." + config.getJustAuthKey().getId());
 

@@ -1,21 +1,21 @@
 version: '2'
 services:
   keycloak:
-    image: keycloak/keycloak:24.0
+    image: registry.cn-shanghai.aliyuncs.com/happiness-frog/keycloak:23.0.7
     environment:
       - KEYCLOAK_ADMIN=admin
       - KEYCLOAK_ADMIN_PASSWORD=admin
-      - KC_DB=mysql
-      - KC_DB_USERNAME=root
-      - KC_DB_PASSWORD=keycloak
-      - KC_DB_URL=jdbc:mysql://keycloak-mysql:3306/keycloak
-      - KC_HOSTNAME=keycloak.intl.ctticyun.com
+#      - KC_DB=mysql
+#      - KC_DB_USERNAME=root
+#      - KC_DB_PASSWORD=keycloak
+#      - KC_DB_URL=jdbc:mysql://keycloak-mysql:3306/keycloak
+#      - KC_HOSTNAME=keycloak.intl.ctticyun.com
 #      - ROOT_LOGLEVEL=DEBUG
-    command: start-dev --import-realm
+    command: start-dev
     ports:
       - 8080:8080
-
-  keycloak-mysql:
-    extends:
-      file: mysql.yml
-      service: keycloak-mysql
+#
+#  keycloak-mysql:
+#    extends:
+#      file: mysql.yml
+#      service: keycloak-mysql
