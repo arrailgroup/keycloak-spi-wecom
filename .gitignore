@@ -144,3 +144,11 @@ Desktop.ini
 ######################
 .eslintcache
 volumes
+
+########
+# 
+########
+env.list.debug
+env.list
+
+
